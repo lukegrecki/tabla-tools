@@ -1,6 +1,9 @@
 import click
-import csv
 from tabla_tools.kayda import Kayda
+
+
+INDICATOR = "indicator"
+DENORMALIZED = "denormalized"
 
 
 @click.group()
@@ -15,11 +18,19 @@ def cli(debug):
 @cli.command(name="to-csv")
 @click.argument("input_path", type=click.Path(exists=True))
 @click.argument("output_path")
-def to_csv(input_path, output_path):
+@click.option(
+    "--output-type", type=click.Choice([INDICATOR, DENORMALIZED]), default=INDICATOR
+)
+def to_csv(input_path, output_path, output_type):
     "Convert a text file containing a tabla kayda to a indicator csv."
 
     with open(input_path, "r") as f:
         kayda = Kayda.parse_from_raw_text(f)
 
     with open(output_path, "w") as o:
-        kayda.to_csv(o)
+        if output_type == INDICATOR:
+            kayda.to_indicator_csv(o)
+        elif output_type == DENORMALIZED:
+            kayda.to_denormalized_csv(o)
+        else:
+            raise click.ClickException("Output type not supported")

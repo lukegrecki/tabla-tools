@@ -57,7 +57,7 @@ class Kayda:
         kayda.variations.append(Variation(bols=current_pattern))
         return kayda
 
-    def to_csv(self, o: TextIO) -> None:
+    def to_indicator_csv(self, o: TextIO) -> None:
         kayda_bols = sorted(set([bol for bol in self.kayda]))
         writer = csv.DictWriter(o, fieldnames=kayda_bols + ["variation"])
         writer.writeheader()
@@ -71,4 +71,25 @@ class Kayda:
             for bol in variation.bols:
                 row_dict = {b: 1 if b == bol else 0 for b in kayda_bols}
                 row_dict["variation"] = i + 1
+                writer.writerow(row_dict)
+
+    def to_denormalized_csv(self, o: TextIO) -> None:
+        chunk_size = self.tala.value
+        kayda = self.kayda
+        headers = list(range(1, chunk_size + 1))
+
+        writer = csv.DictWriter(o, fieldnames=headers)
+        writer.writeheader()
+
+        for row_number in range(0, len(kayda) + 1, chunk_size):
+            row_bols = kayda[row_number : row_number + chunk_size]
+            indexed_bols = zip(headers, row_bols)
+            row_dict = {beat: bol for (beat, bol) in indexed_bols}
+            writer.writerow(row_dict)
+
+        for variation in self.variations:
+            for row_number in range(0, len(variation.bols) + 1, chunk_size):
+                row_bols = variation.bols[row_number : row_number + chunk_size]
+                indexed_bols = zip(headers, row_bols)
+                row_dict = {beat: bol for (beat, bol) in indexed_bols}
                 writer.writerow(row_dict)
