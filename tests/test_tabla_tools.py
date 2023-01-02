@@ -40,3 +40,15 @@ def test_to_denormalized_csv():
         ],
     )
     assert result.exit_code == 0
+
+
+def test_pretty_print():
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [
+            "pretty-print",
+            "tests/fixtures/teental-kayda.txt",
+        ],
+    )
+    assert result.exit_code == 0
