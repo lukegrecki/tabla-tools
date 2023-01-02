@@ -32,8 +32,6 @@ setup(
         tabla-tools=tabla_tools.cli:cli
     """,
     install_requires=["click"],
-    extras_require={
-        "test": ["pytest"]
-    },
+    extras_require={"test": ["pytest", "black"]},
     python_requires=">=3.7",
 )
