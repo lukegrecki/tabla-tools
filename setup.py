@@ -31,7 +31,7 @@ setup(
         [console_scripts]
         tabla-tools=tabla_tools.cli:cli
     """,
-    install_requires=["click"],
+    install_requires=["click", "tabulate"],
     extras_require={"test": ["pytest", "black"]},
     python_requires=">=3.7",
 )

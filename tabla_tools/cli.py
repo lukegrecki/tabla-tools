@@ -1,34 +1,11 @@
-from dataclasses import dataclass, field
-from enum import Enum
-from typing import List, Optional
-import click
 import csv
+import click
+from tabulate import tabulate
+from tabla_tools.kayda import Kayda
 
 
-class Tala(Enum):
-    teental = 4
-
-
-class Bol(Enum):
-    dha = 1
-    te = 2
-    Te = 3
-    ti = 4
-    na = 5
-    ta = 6
-    dhi = 7
-
-
-@dataclass
-class Variation:
-    bols: List[Bol]
-
-
-@dataclass
-class Kayda:
-    tala: Tala
-    kayda: Optional[List[Bol]] = None
-    variations: List[Variation] = field(default_factory=list)
+INDICATOR = "indicator"
+DENORMALIZED = "denormalized"
 
 
 @click.group()
@@ -43,46 +20,36 @@ def cli(debug):
 @cli.command(name="to-csv")
 @click.argument("input_path", type=click.Path(exists=True))
 @click.argument("output_path")
-def to_csv(input_path, output_path):
-    "Convert a text file containing a tabla kayda to a csv."
+@click.option(
+    "--output-type", type=click.Choice([INDICATOR, DENORMALIZED]), default=INDICATOR
+)
+def to_csv(input_path, output_path, output_type):
+    "Convert a text file containing a tabla kayda to a indicator or denormalized csv."
 
     with open(input_path, "r") as f:
-        for line in f:
-            if "tala" in line:
-                tala = line.strip().strip("[]").split(":")[1]
-                try:
-                    kayda = Kayda(Tala[tala])
-                    current_pattern = []
-                    continue
-                except KeyError:
-                    raise click.ClickException(f"Tala {tala} is not supported")
-
-            if "-" in line:
-                if kayda.kayda is None:
-                    kayda.kayda = current_pattern
-                else:
-                    kayda.variations.append(Variation(bols=current_pattern))
-
-                current_pattern = []
-                continue
-
-            line_bols = line.split()
-            current_pattern.extend(line_bols)
-
-        kayda.variations.append(Variation(bols=current_pattern))
+        kayda = Kayda.parse_from_raw_text(f)
 
     with open(output_path, "w") as o:
-        kayda_bols = sorted(set([bol for bol in kayda.kayda]))
-        writer = csv.DictWriter(o, fieldnames=kayda_bols + ["variation"])
-        writer.writeheader()
+        if output_type == INDICATOR:
+            kayda.to_indicator_csv(o)
+        elif output_type == DENORMALIZED:
+            kayda.to_denormalized_csv(o)
+        else:
+            raise click.ClickException("Output type not supported")
 
-        for bol in kayda.kayda:
-            row_dict = {b: 1 if b == bol else 0 for b in kayda_bols}
-            row_dict["variation"] = 0
-            writer.writerow(row_dict)
 
-        for i, variation in enumerate(kayda.variations):
-            for bol in variation.bols:
-                row_dict = {b: 1 if b == bol else 0 for b in kayda_bols}
-                row_dict["variation"] = i + 1
-                writer.writerow(row_dict)
+@cli.command(name="pretty-print")
+@click.argument("input_path", type=click.Path(exists=True))
+def pretty_print(input_path):
+    """
+    Pretty print a csv file containing a denormalized tabla kayda file
+    to stdout.
+    """
+
+    with open(input_path, "r") as f:
+        reader = csv.reader(f)
+        rows = []
+        for row in reader:
+            rows.append(row)
+
+    click.echo(tabulate(rows, tablefmt="psql", headers="firstrow"))
